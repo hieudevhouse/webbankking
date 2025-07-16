@@ -10,7 +10,7 @@ const app = express();
 const port = process.env.PORT || 3000;
 
 // Kết nối MongoDB
-mongoose.connect(process.env.MONGODB_URI)
+mongoose.connect(process.env.MONGODB_URI, { useNewUrlParser: true, useUnifiedTopology: true })
   .then(() => console.log('Kết nối MongoDB thành công'))
   .catch(err => console.error('Lỗi kết nối MongoDB:', err));
 
@@ -37,10 +37,25 @@ app.set('views', path.join(__dirname, 'views'));
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
+
+// Endpoint xác minh webhook
+
+app.get('/confirm-webhook', async (req, res) => {
+  try {
+    const webhookUrl = 'https://webbankking.onrender.com/payos-callback';
+    await payOS.confirmWebhook(webhookUrl);
+    res.status(200).send('Webhook confirmed successfully');
+  } catch (error) {
+    console.error('Lỗi xác minh webhook:', error.message);
+    res.status(500).send('Lỗi xác minh webhook: ' + error.message);
+  }
+});
+
 // Trang câu hỏi
 app.get('/', async (req, res) => {
   res.render('question');
 });
+
 // Trang thanh toán
 app.get('/index', async (req, res) => {
   try {
@@ -78,7 +93,7 @@ app.post('/create-payment', async (req, res) => {
       orderCode: orderCode,
       amount: parseInt(amount),
       description: `Thanh toán cho ${student.name.slice(0, 15)}`.slice(0, 25),
-      returnUrl: process.env.RETURN_URL || 'https://webbankking.onrender.com/success', // Sử dụng biến môi trường hoặc mặc định
+      returnUrl: process.env.RETURN_URL || 'https://webbankking.onrender.com/success',
       cancelUrl: process.env.CANCEL_URL || 'https://webbankking.onrender.com/cancel',
       buyerName: student.name,
       buyerEmail: student.email,
@@ -94,7 +109,7 @@ app.post('/create-payment', async (req, res) => {
       throw new Error('Không nhận được URL thanh toán từ PayOS');
     }
 
-    student.orderCode = orderCode.toString(); // Chuyển orderCode thành chuỗi để đảm bảo đồng bộ
+    student.orderCode = orderCode.toString();
     student.paymentStatus = 'pending';
     await student.save();
 
@@ -107,40 +122,57 @@ app.post('/create-payment', async (req, res) => {
 
 // Endpoint xử lý callback từ PayOS
 app.post('/payos-callback', async (req, res) => {
-  console.log('Nhận được callback từ PayOS:', req.body); // Log toàn bộ dữ liệu callback
+  console.log('=== Nhận được callback từ PayOS ===');
+  console.log('Headers:', JSON.stringify(req.headers, null, 2));
+  console.log('Body:', JSON.stringify(req.body, null, 2));
+  console.log('Query:', JSON.stringify(req.query, null, 2));
 
-  const { orderCode } = req.body;
+  const webhookData = req.body;
 
-  // Kiểm tra dữ liệu đầu vào
+  // Xác minh webhook signature
+  try {
+    const isValid = payOS.verifyWebhookData(webhookData);
+    if (!isValid) {
+      console.error('Webhook signature không hợp lệ:', webhookData);
+      return res.status(400).json({ error: 'Webhook signature không hợp lệ' });
+    }
+  } catch (error) {
+    console.error('Lỗi xác minh webhook:', error.message);
+    return res.status(400).json({ error: 'Lỗi xác minh webhook', details: error.message });
+  }
+
+  const { orderCode, status } = webhookData;
   if (!orderCode) {
-    console.error('Callback thiếu orderCode:', req.body);
+    console.error('Callback thiếu orderCode:', webhookData);
     return res.status(400).json({ error: 'Dữ liệu callback không hợp lệ' });
   }
 
   try {
-    // Tìm sinh viên dựa trên orderCode
     const student = await Student.findOne({ orderCode: orderCode.toString() });
     if (!student) {
       console.error('Không tìm thấy sinh viên với orderCode:', orderCode);
       return res.status(404).json({ error: 'Không tìm thấy đơn hàng' });
     }
 
-    // Lấy thông tin giao dịch từ PayOS
     const paymentInfo = await payOS.getPaymentLinkInformation(orderCode);
-    const paymentAmount = parseInt(paymentInfo.amount); // Tiền đơn hàng
-    const amountPaid = parseInt(paymentInfo.amountPaid); // Tiền đã thanh toán
+    const paymentAmount = parseInt(paymentInfo.amount);
+    const amountPaid = parseInt(paymentInfo.amountPaid);
 
-    console.log('Payment info from PayOS:', { orderCode, paymentAmount, amountPaid });
+    console.log('Payment info from PayOS:', { orderCode, paymentAmount, amountPaid, status });
 
-    // So sánh amount và amountPaid
-    if (paymentAmount === amountPaid) {
+    if (status === 'PAID' && paymentAmount === amountPaid) {
       student.paymentStatus = 'complete';
       await student.save();
       console.log(`Thanh toán hoàn tất cho sinh viên ${student.email}, orderCode: ${orderCode}`);
       return res.status(200).json({ message: 'Thanh toán hoàn tất', status: 'success' });
+    } else if (status === 'CANCELLED') {
+      student.paymentStatus = 'incomplete';
+      await student.save();
+      console.log(`Thanh toán bị hủy cho sinh viên ${student.email}, orderCode: ${orderCode}`);
+      return res.status(200).json({ message: 'Thanh toán bị hủy', status: 'cancelled' });
     } else {
-      console.error('Số tiền không khớp:', { paymentAmount, amountPaid });
-      return res.status(400).json({ error: 'Số tiền thanh toán không khớp với số tiền đơn hàng' });
+      console.error('Trạng thái hoặc số tiền không khớp:', { status, paymentAmount, amountPaid });
+      return res.status(400).json({ error: 'Trạng thái hoặc số tiền thanh toán không hợp lệ' });
     }
   } catch (error) {
     console.error('Lỗi xử lý callback:', error.message);
@@ -151,6 +183,8 @@ app.post('/payos-callback', async (req, res) => {
 // Trang thành công
 app.get('/success', async (req, res) => {
   const { orderCode } = req.query;
+  console.log('Success route - Query:', req.query);
+
   if (orderCode) {
     try {
       const student = await Student.findOne({ orderCode: orderCode.toString() });
@@ -159,7 +193,6 @@ app.get('/success', async (req, res) => {
         return res.render('success');
       }
 
-      // Kiểm tra trạng thái thanh toán dự phòng
       const paymentInfo = await payOS.getPaymentLinkInformation(orderCode);
       const paymentAmount = parseInt(paymentInfo.amount);
       const amountPaid = parseInt(paymentInfo.amountPaid);
@@ -182,6 +215,7 @@ app.get('/success', async (req, res) => {
 
 // Trang hủy
 app.get('/cancel', (req, res) => {
+  console.log('Cancel route - Query:', req.query);
   res.render('cancel');
 });
 
@@ -213,20 +247,17 @@ app.post('/admin/add-student', async (req, res) => {
   const { email, name, studentId, amount } = req.body;
   console.log('Dữ liệu nhận được:', req.body);
 
-  // Kiểm tra dữ liệu đầu vào
   if (!email || !name || !studentId || !amount) {
     console.error('Thiếu dữ liệu khi thêm sinh viên:', { email, name, studentId, amount });
     return res.status(400).json({ error: 'Tất cả các trường đều bắt buộc.' });
   }
 
-  // Kiểm tra định dạng email
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!emailRegex.test(email)) {
     console.error('Email không hợp lệ:', email);
     return res.status(400).json({ error: 'Email không hợp lệ.' });
   }
 
-  // Kiểm tra amount
   const parsedAmount = parseInt(amount);
   if (isNaN(parsedAmount) || parsedAmount <= 0) {
     console.error('Số tiền không hợp lệ:', amount);
@@ -234,14 +265,12 @@ app.post('/admin/add-student', async (req, res) => {
   }
 
   try {
-    // Kiểm tra email đã tồn tại
     const existingStudent = await Student.findOne({ email });
     if (existingStudent) {
       console.error('Email đã tồn tại:', email);
       return res.status(400).json({ error: 'Email đã tồn tại, vui lòng sử dụng email khác.' });
     }
 
-    // Tạo sinh viên mới
     const orderCode = Date.now() + Math.floor(Math.random() * 1000);
     const newStudent = new Student({
       email,
@@ -268,6 +297,7 @@ app.post('/admin/add-student', async (req, res) => {
     return res.status(500).json({ error: `Lỗi server: ${err.message}` });
   }
 });
+
 app.get('/admin/export-students', async (req, res) => {
   try {
     const workbook = new ExcelJS.Workbook();

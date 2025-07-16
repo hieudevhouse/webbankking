@@ -78,8 +78,8 @@ app.post('/create-payment', async (req, res) => {
       orderCode: orderCode,
       amount: parseInt(amount),
       description: `Thanh toán cho ${student.name.slice(0, 15)}`.slice(0, 25),
-      returnUrl: process.env.RETURN_URL || 'http://localhost:3000/success', // Sử dụng biến môi trường hoặc mặc định
-      cancelUrl: process.env.CANCEL_URL || 'http://localhost:3000/cancel',
+      returnUrl: process.env.RETURN_URL || 'https://webbankking.onrender.com/success', // Sử dụng biến môi trường hoặc mặc định
+      cancelUrl: process.env.CANCEL_URL || 'https://webbankking.onrender.com/cancel',
       buyerName: student.name,
       buyerEmail: student.email,
       items: [{ name: 'Thanh Toán', quantity: 1, price: parseInt(amount) }]

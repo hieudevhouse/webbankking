@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>Câu Hỏi</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: linear-gradient(135deg, #1e1b4b, #06b6d4);
+      min-height: 100vh;
+      margin: 0;
+      display: flex;
+      color: #e5e7eb;
+      position: relative;
+      overflow: hidden;
+    }
+    .container {
+      max-width: 600px;
+      margin: auto;
+      padding: 2rem;
+      background: rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(12px);
+      border-radius: 1rem;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      z-index: 10;
+      position: relative;
+    }
+    h1 {
+      color: #ffffff;
+      text-align: center;
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: 2rem;
+      text-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+      background: linear-gradient(90deg, #22d3ee, #ec4899);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .buttons {
+      display: flex;
+      justify-content: center;
+      gap: 3rem;
+      margin-top: 1.5rem;
+      position: relative;
+      min-height: 50px;
+    }
+    .center-button {
+      display: flex;
+      justify-content: center;
+      margin-top: 1.5rem;
+    }
+    button {
+      padding: 0.75rem 2rem;
+      background: linear-gradient(90deg, #ec4899, #f472b6);
+      color: white;
+      border: none;
+      border-radius: 0.5rem;
+      font-size: 1rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 15px rgba(236, 72, 153, 0.4);
+      position: relative;
+    }
+    button:hover {
+      background: linear-gradient(90deg, #db2777, #ec4899);
+      transform: scale(1.05);
+      box-shadow: 0 6px 20px rgba(236, 72, 153, 0.6);
+    }
+    #noButton.moving {
+      position: absolute;
+      transition: transform 0.03s ease;
+    }
+    #paymentButton {
+      display: none;
+      background: linear-gradient(90deg, #22d3ee, #06b6d4);
+    }
+    #paymentButton:hover {
+      background: linear-gradient(90deg, #0ea5e9, #22d3ee);
+    }
+    #correctMessage {
+      display: none;
+      text-align: center;
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: #ffffff;
+      background: linear-gradient(90deg, #22d3ee, #ec4899);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-top: 1.5rem;
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    }
+    #correctMessage span {
+      font-size: 1.5rem;
+      margin-left: 0.5rem;
+    }
+    canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 1000;
+    }
+    /* Hoa lá rơi */
+    .falling-icon {
+      position: fixed;
+      top: -40px;
+      z-index: 999;
+      animation-name: fallDown;
+      animation-timing-function: linear;
+      animation-fill-mode: forwards;
+      pointer-events: none;
+    }
+
+    @keyframes fallDown {
+      to {
+        transform: translateY(110vh) rotate(360deg);
+        opacity: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1 id="questionHeading">Cô Thùy Linh có xinh không ạh ?</h1>
+    <div class="buttons">
+      <button id="yesButton">Có❤️</button>
+      <button id="noButton">Khôngggg</button>
+    </div>
+    <div id="correctMessage">Chính xác rồi hẹ hẹ hẹ <span>❤️❤️❤️</span></div>
+    <div class="center-button">
+      <button id="paymentButton">Thanh Toán</button>
+    </div>
+  </div>
+  <canvas id="fireworksCanvas"></canvas>
+
+  <script>
+    const noButton = document.getElementById('noButton');
+    const yesButton = document.getElementById('yesButton');
+    const paymentButton = document.getElementById('paymentButton');
+    const correctMessage = document.getElementById('correctMessage');
+    const questionHeading = document.getElementById('questionHeading');
+    const canvas = document.getElementById('fireworksCanvas');
+    const ctx = canvas.getContext('2d');
+    const container = document.querySelector('.container');
+
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    noButton.addEventListener('mouseenter', () => {
+      noButton.classList.add('moving');
+      const containerRect = container.getBoundingClientRect();
+      const buttonRect = noButton.getBoundingClientRect();
+      const yesRect = yesButton.getBoundingClientRect();
+      const padding = 20;
+      const maxX = containerRect.width - buttonRect.width - padding;
+      const maxY = containerRect.height - buttonRect.height - padding;
+      let newX, newY;
+      do {
+        newX = Math.random() * maxX;
+        newY = Math.random() * maxY;
+      } while (
+        newX + containerRect.left > yesRect.left - buttonRect.width - padding &&
+        newX + containerRect.left < yesRect.right + padding &&
+        newY + containerRect.top > yesRect.top - buttonRect.height - padding &&
+        newY + containerRect.top < yesRect.bottom + padding
+      );
+      noButton.style.transform = `translate(${newX}px, ${newY}px)`;
+    });
+
+    // Pháo hoa
+    let fireworks = [];
+    let animationFrameId = null;
+
+    class Firework {
+      constructor() {
+        this.x = Math.random() * canvas.width;
+        this.y = canvas.height;
+        this.targetY = Math.random() * canvas.height * 0.4;
+        this.speed = Math.random() * 4 + 3;
+        this.particles = [];
+        this.exploded = false;
+        this.hue = Math.random() * 360;
+        this.trail = [];
+      }
+      update() {
+        if (!this.exploded) {
+          this.y -= this.speed;
+          this.trail.push({ x: this.x, y: this.y, life: 20 });
+          this.trail = this.trail.filter(t => t.life-- > 0);
+          if (this.y <= this.targetY) this.explode();
+        } else {
+          this.particles.forEach(p => p.update());
+          this.particles = this.particles.filter(p => p.life > 0);
+        }
+      }
+      draw() {
+        if (!this.exploded) {
+          ctx.beginPath();
+          ctx.strokeStyle = `hsl(${this.hue}, 100%, 70%)`;
+          ctx.lineWidth = 2;
+          this.trail.forEach((t, i) => i === 0 ? ctx.moveTo(t.x, t.y) : ctx.lineTo(t.x, t.y));
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.arc(this.x, this.y, 4, 0, Math.PI * 2);
+          ctx.fillStyle = `hsl(${this.hue}, 100%, 70%)`;
+          ctx.fill();
+        } else {
+          this.particles.forEach(p => p.draw());
+        }
+      }
+      explode() {
+        this.exploded = true;
+        for (let i = 0; i < 40; i++) {
+          this.particles.push(new Particle(this.x, this.y, this.hue));
+        }
+      }
+    }
+
+    class Particle {
+      constructor(x, y, hue) {
+        this.x = x;
+        this.y = y;
+        this.vx = (Math.random() - 0.5) * 10;
+        this.vy = (Math.random() - 0.5) * 10;
+        this.life = 100;
+        this.hue = hue;
+      }
+      update() {
+        this.x += this.vx;
+        this.y += this.vy;
+        this.vy += 0.15;
+        this.life--;
+      }
+      draw() {
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, 3, 0, Math.PI * 2);
+        ctx.fillStyle = `hsl(${this.hue}, 100%, ${Math.max(this.life, 50)}%)`;
+        ctx.fill();
+      }
+    }
+
+    function animateFireworks() {
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.15)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      fireworks.forEach(f => {
+        f.update();
+        f.draw();
+      });
+      fireworks = fireworks.filter(f => !f.exploded || f.particles.length > 0);
+      if (fireworks.length > 0) {
+        animationFrameId = requestAnimationFrame(animateFireworks);
+      } else {
+        cancelAnimationFrame(animationFrameId);
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+      }
+    }
+
+    function launchFireworks() {
+      fireworks = Array.from({ length: 6 }, () => new Firework());
+      animateFireworks();
+    }
+
+    function stopFireworks() {
+      fireworks = [];
+      cancelAnimationFrame(animationFrameId);
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+
+    yesButton.addEventListener('click', () => {
+      noButton.style.display = 'none';
+      yesButton.style.display = 'none';
+      correctMessage.style.display = 'block';
+      launchFireworks();
+      setTimeout(() => {
+        correctMessage.style.display = 'none';
+        questionHeading.style.display = 'none';
+        stopFireworks();
+        paymentButton.style.display = 'block';
+      }, 4000);
+    });
+
+    paymentButton.addEventListener('click', () => {
+      window.location.href = '/index';
+    });
+
+    // 🌸🍃 Hiệu ứng hoa lá rơi
+    function createFallingIcons() {
+      const icons = ['🌸', '🍃'];
+      setInterval(() => {
+        const icon = document.createElement('div');
+        icon.classList.add('falling-icon');
+        icon.textContent = icons[Math.floor(Math.random() * icons.length)];
+        icon.style.left = Math.random() * 100 + 'vw';
+        icon.style.animationDuration = (Math.random() * 5 + 5) + 's';
+        icon.style.fontSize = (Math.random() * 20 + 20) + 'px';
+        document.body.appendChild(icon);
+        setTimeout(() => icon.remove(), 10000);
+      }, 300);
+    }
+
+    window.onload = () => {
+      createFallingIcons();
+    };
+  </script>
+</body>
+</html>

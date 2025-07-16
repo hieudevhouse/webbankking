@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>Thông tin thanh toán</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: linear-gradient(135deg, #f9a8d4, #93c5fd);
+      min-height: 100vh;
+      margin: 0;
+      display: flex;
+      overflow-x: hidden;
+      position: relative;
+    }
+    .container {
+      max-width: 32rem; /* 512px */
+      margin: 3rem auto;
+      background: rgba(255, 255, 255, 0.95);
+      padding: 2rem;
+      border-radius: 1rem;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      backdrop-filter: blur(10px);
+      position: relative;
+      z-index: 10;
+    }
+    h1 {
+      text-align: center;
+      font-size: 1.75rem;
+      font-weight: 700;
+      color: #1f2937;
+      margin-bottom: 2rem;
+      background: linear-gradient(90deg, #ec4899, #3b82f6);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .form-group {
+      margin-bottom: 1.5rem;
+    }
+    label {
+      font-weight: 600;
+      color: #374151;
+      margin-bottom: 0.5rem;
+      display: block;
+    }
+    input, select {
+      width: 100%;
+      padding: 0.75rem;
+      border: 1px solid #d1d5db;
+      border-radius: 0.5rem;
+      font-size: 0.95rem;
+      transition: all 0.3s ease;
+    }
+    input:focus, select:focus {
+      outline: none;
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+    }
+    input[readonly] {
+      background: #f3f4f6;
+      cursor: not-allowed;
+    }
+    button {
+      padding: 0.875rem;
+      background: linear-gradient(90deg, #ec4899, #f472b6);
+      color: white;
+      border: none;
+      border-radius: 0.5rem;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    button:hover {
+      background: linear-gradient(90deg, #db2777, #ec4899);
+      transform: scale(1.05);
+      box-shadow: 0 4px 15px rgba(236, 72, 153, 0.4);
+    }
+    .view-info-button {
+      position: absolute;
+      top: 5rem; /* Dịch xuống thêm để không che tiêu đề */
+      right: 1rem;
+      padding: 0.5rem 1rem;
+      font-size: 0.9rem;
+      background: linear-gradient(90deg, #8b5cf6, #a78bfa);
+    }
+    .view-info-button:hover {
+      background: linear-gradient(90deg, #7c3aed, #8b5cf6);
+      transform: scale(1.05);
+      box-shadow: 0 4px 15px rgba(139, 92, 246, 0.4);
+    }
+    #paymentResponse {
+      margin-top: 1rem;
+      color: #dc2626;
+      font-weight: 600;
+      text-align: center;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+    #paymentResponse.show {
+      opacity: 1;
+    }
+    .note {
+      font-size: 0.75rem;
+      color: #6b7280;
+      margin-top: 0.25rem;
+    }
+    .falling {
+      position: fixed;
+      top: -3rem;
+      font-size: 1.5rem;
+      animation: fall linear infinite;
+      z-index: 0;
+      pointer-events: none;
+      background: linear-gradient(45deg, #ec4899, #93c5fd);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    @keyframes fall {
+      to {
+        transform: translateY(110vh) rotate(720deg);
+        opacity: 0;
+      }
+    }
+    .choices__inner {
+      border-radius: 0.5rem;
+      border: 1px solid #d1d5db;
+      background: white;
+      padding: 0.5rem;
+    }
+    .choices__input {
+      font-size: 0.95rem;
+    }
+    .choices__list--dropdown {
+      border-radius: 0.5rem;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    }
+    /* Modal styles */
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.7);
+      z-index: 100;
+      justify-content: center;
+      align-items: center;
+      backdrop-filter: blur(5px);
+      transition: opacity 0.3s ease;
+    }
+    .modal-content {
+      background: linear-gradient(135deg, #ffffff, #f3e8ff);
+      padding: 2rem;
+      border-radius: 1.5rem;
+      box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
+      border: 2px solid rgba(236, 72, 153, 0.3);
+      max-width: 90%;
+      width: 800px;
+      max-height: 85vh;
+      overflow-y: auto;
+      position: relative;
+      transform: scale(0.95);
+      transition: transform 0.3s ease;
+    }
+    .modal-content h2 {
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: 1.5rem;
+      text-align: center;
+      background: linear-gradient(90deg, #ec4899, #3b82f6);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .close-button {
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      background: linear-gradient(90deg, #ec4899, #f472b6);
+      border: none;
+      border-radius: 50%;
+      width: 2rem;
+      height: 2rem;
+      font-size: 1.25rem;
+      color: white;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.3s ease;
+    }
+    .close-button:hover {
+      background: linear-gradient(90deg, #db2777, #ec4899);
+      transform: rotate(90deg);
+    }
+    .table-wrapper {
+      width: 100%;
+      overflow-x: auto;
+    }
+    table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      background: rgba(255, 255, 255, 0.95);
+      border-radius: 0.75rem;
+      overflow: hidden;
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+    }
+    th, td {
+      padding: 1rem;
+      text-align: left;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+      color: #1f2937;
+      font-size: 0.9rem;
+    }
+    th {
+      background: linear-gradient(90deg, #ec4899, #f472b6);
+      color: white;
+      text-transform: uppercase;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+    th:nth-child(1), td:nth-child(1) { min-width: 60px; } /* Số thứ tự */
+    th:nth-child(2), td:nth-child(2) { min-width: 120px; } /* Email */
+    th:nth-child(3), td:nth-child(3) { min-width: 100px; } /* Tên */
+    th:nth-child(4), td:nth-child(4) { min-width: 80px; } /* Mã SV */
+    th:nth-child(5), td:nth-child(5) { min-width: 80px; } /* Số Tiền */
+    th:nth-child(6), td:nth-child(6) { min-width: 80px; } /* Trạng thái */
+    td input[type="checkbox"] {
+      transform: scale(1.3);
+      margin: 0 0.5rem;
+      cursor: not-allowed;
+      appearance: none;
+      width: 1.2rem;
+      height: 1.2rem;
+      border: 2px solid #d1d5db;
+      border-radius: 0.25rem;
+      background-color: #f3f4f6;
+      position: relative;
+    }
+    td input[type="checkbox"]:checked {
+      border-color: #22d3ee;
+      background-color: #22d3ee;
+    }
+    td input[type="checkbox"]:checked::after {
+      content: '✔';
+      color: #ffffff;
+      font-size: 0.8rem;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+    }
+    .search-bar {
+      margin-bottom: 1.5rem;
+    }
+    .search-bar input {
+      width: 100%;
+      padding: 0.75rem;
+      border: 1px solid #d1d5db;
+      border-radius: 0.5rem;
+      font-size: 0.95rem;
+      transition: all 0.3s ease;
+    }
+    .search-bar input:focus {
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+    }
+    .pagination {
+      margin-top: 1.5rem;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .pagination button {
+      padding: 0.5rem 1rem;
+      font-size: 0.9rem;
+      background: linear-gradient(90deg, #8b5cf6, #a78bfa);
+      border-radius: 0.5rem;
+      box-shadow: 0 4px 15px rgba(139, 92, 246, 0.4);
+    }
+    .pagination button:disabled {
+      background: #6b7280;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+    .pagination button:hover:not(:disabled) {
+      background: linear-gradient(90deg, #7c3aed, #8b5cf6);
+      transform: scale(1.05);
+    }
+    .pagination span {
+      font-size: 0.9rem;
+      color: #1f2937;
+      font-weight: 500;
+    }
+    @media (min-width: 768px) {
+      .container {
+        max-width: 40rem;
+      }
+      .modal-content {
+        transform: scale(1);
+      }
+      h1 {
+        font-size: 2rem;
+      }
+      th, td {
+        font-size: 0.95rem;
+      }
+      th {
+        font-size: 0.9rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <button class="view-info-button" onclick="showStudentListModal()">Xem thông tin đã nộp</button>
+    <h1>Điền thông tin thanh toán</h1>
+    <form id="paymentForm">
+      <div class="form-group">
+        <label for="studentEmail">Email:</label>
+        <select name="email" id="studentEmail" required>
+          <option value="">Chọn sinh viên</option>
+          <% if (students && students.length > 0) { %>
+            <% students.forEach(student => { %>
+              <option value="<%= student.email %>"><%= student.email %></option>
+            <% }) %>
+          <% } %>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="studentName">Tên:</label>
+        <input type="text" id="studentName" name="name" required readonly>
+      </div>
+      <div class="form-group">
+        <label for="studentId">Mã Sinh Viên:</label>
+        <input type="text" id="studentId" name="studentId" required readonly>
+      </div>
+      <div class="form-group">
+        <label for="studentAmount">Số Tiền (VND):</label>
+        <input type="number" id="studentAmount" name="amount" min="0" required readonly>
+        <div class="note">* Số tiền được lấy từ dữ liệu admin, không thể chỉnh sửa.</div>
+      </div>
+      <button type="submit">Tạo Mã Thanh Toán</button>
+    </form>
+    <div id="paymentResponse"></div>
+  </div>
+
+  <!-- Modal hiển thị danh sách sinh viên -->
+  <div id="studentListModal" class="modal">
+    <div class="modal-content">
+      <button class="close-button" onclick="closeStudentListModal()">×</button>
+      <h2>Danh Sách Sinh Viên</h2>
+      <div class="search-bar">
+        <input type="text" id="searchInput" placeholder="Tìm kiếm theo tên..." oninput="searchStudents()">
+      </div>
+      <div class="table-wrapper">
+        <table id="studentTable">
+          <thead>
+            <tr>
+              <th>Số thứ tự</th>
+              <th>Email</th>
+              <th>Tên</th>
+              <th>Mã SV</th>
+              <th>Số Tiền</th>
+              <th>Trạng thái</th>
+            </tr>
+          </thead>
+          <tbody id="studentTableBody"></tbody>
+        </table>
+      </div>
+      <div class="pagination">
+        <button id="prevPage" onclick="prevPage()">Trước</button>
+        <span id="pageInfo"></span>
+        <button id="nextPage" onclick="nextPage()">Sau</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
+  <script>
+    // Khởi tạo Choices.js cho dropdown tìm kiếm
+    const emailSelect = document.getElementById('studentEmail');
+    const choices = new Choices(emailSelect, {
+      searchEnabled: true,
+      searchPlaceholderValue: 'Tìm email sinh viên...',
+      itemSelectText: '',
+      noResultsText: 'Không tìm thấy sinh viên',
+      noChoicesText: 'Không có sinh viên nào',
+      shouldSort: false,
+    });
+
+    function updateStudentDetails() {
+      const selectedEmail = emailSelect.value;
+      const students = <%- JSON.stringify(students || []) %>;
+      const student = students.find(s => s.email === selectedEmail);
+      document.getElementById('studentName').value = student?.name || '';
+      document.getElementById('studentId').value = student?.studentId || '';
+      document.getElementById('studentAmount').value = student?.amount || '';
+    }
+
+    window.onload = () => {
+      updateStudentDetails();
+      emailSelect.addEventListener('change', updateStudentDetails);
+      createFallingIcons();
+      displayStudents(1); // Hiển thị trang đầu tiên khi mở modal
+    };
+
+    document.getElementById('paymentForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const paymentResponse = document.getElementById('paymentResponse');
+      if (!emailSelect.value) {
+        paymentResponse.innerText = 'Vui lòng chọn email sinh viên trước khi tạo mã thanh toán';
+        paymentResponse.classList.add('show');
+        setTimeout(() => {
+          paymentResponse.classList.remove('show');
+          paymentResponse.innerText = '';
+        }, 3000);
+        return;
+      }
+      const formData = new FormData(e.target);
+      const response = await fetch('/create-payment', {
+        method: 'POST',
+        body: new URLSearchParams(formData).toString(),
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+      });
+      const result = await response.json();
+      if (result.checkoutUrl) {
+        window.location.href = result.checkoutUrl;
+      } else {
+        paymentResponse.innerText = result.error || 'Lỗi không xác định';
+        paymentResponse.classList.add('show');
+      }
+    });
+
+    // Tạo hiệu ứng hoa và lá rơi
+    function createFallingIcons() {
+      const icons = ['🌸', '🍃', '🌺', '🍂'];
+      setInterval(() => {
+        const icon = document.createElement('div');
+        icon.classList.add('falling');
+        icon.style.left = Math.random() * 100 + 'vw';
+        icon.style.animationDuration = (Math.random() * 4 + 6) + 's';
+        icon.style.fontSize = (Math.random() * 0.5 + 1.2) + 'rem';
+        icon.innerText = icons[Math.floor(Math.random() * icons.length)];
+        document.body.appendChild(icon);
+        setTimeout(() => icon.remove(), 12000);
+      }, 200);
+    }
+
+    // Modal và phân trang
+    const students = <%- JSON.stringify(students || []) %>;
+    let filteredStudents = students;
+    const itemsPerPage = 5;
+    let currentPage = 1;
+
+    function displayStudents(page) {
+      const start = (page - 1) * itemsPerPage;
+      const end = start + itemsPerPage;
+      const tableBody = document.getElementById('studentTableBody');
+      tableBody.innerHTML = '';
+      const paginatedStudents = filteredStudents.slice(start, end);
+      if (paginatedStudents.length === 0) {
+        tableBody.innerHTML = '<tr><td colspan="6" class="text-center">Không có dữ liệu sinh viên</td></tr>';
+      } else {
+        paginatedStudents.forEach((student, index) => {
+          tableBody.innerHTML += `
+            <tr>
+              <td>${start + index + 1}</td>
+              <td>${student.email}</td>
+              <td>${student.name}</td>
+              <td>${student.studentId}</td>
+              <td>${student.amount}</td>
+              <td><input type="checkbox" ${student.paymentStatus === 'complete' ? 'checked' : ''} disabled></td>
+            </tr>
+          `;
+        });
+      }
+      updatePagination();
+    }
+
+    function updatePagination() {
+      const totalPages = Math.ceil(filteredStudents.length / itemsPerPage) || 1;
+      const prevButton = document.getElementById('prevPage');
+      const nextButton = document.getElementById('nextPage');
+      prevButton.disabled = currentPage === 1;
+      nextButton.disabled = currentPage === totalPages;
+      document.getElementById('pageInfo').textContent = `Trang ${currentPage} / ${totalPages}`;
+    }
+
+    function prevPage() {
+      if (currentPage > 1) {
+        currentPage--;
+        displayStudents(currentPage);
+      }
+    }
+
+    function nextPage() {
+      if (currentPage < Math.ceil(filteredStudents.length / itemsPerPage)) {
+        currentPage++;
+        displayStudents(currentPage);
+      }
+    }
+
+    function searchStudents() {
+      const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+      filteredStudents = students.filter(student => 
+        student.name.toLowerCase().includes(searchTerm)
+      );
+      currentPage = 1;
+      displayStudents(currentPage);
+    }
+
+    function showStudentListModal() {
+      filteredStudents = students; // Reset danh sách khi mở modal
+      currentPage = 1;
+      displayStudents(currentPage);
+      document.getElementById('studentListModal').style.display = 'flex';
+    }
+
+    function closeStudentListModal() {
+      document.getElementById('studentListModal').style.display = 'none';
+      document.getElementById('searchInput').value = ''; // Reset thanh tìm kiếm
+      filteredStudents = students; // Reset danh sách
+      currentPage = 1;
+      displayStudents(currentPage);
+    }
+  </script>
+</body>
+</html>

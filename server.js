@@ -231,17 +231,17 @@ app.post('/admin/login', (req, res) => {
   }
 });
 
-app.get('/admin/dashboard', async (req, res) => {
-  try {
-    const students = await Student.find({});
-    const paidCount = students.filter(s => s.paymentStatus === 'complete').length;
-    const unpaidCount = students.filter(s => s.paymentStatus === 'incomplete' || s.paymentStatus === 'pending').length;
-    res.render('admin-dashboard', { students, paidCount, unpaidCount });
-  } catch (err) {
-    console.error('Lỗi khi lấy dashboard:', err.message);
-    res.status(500).send('Lỗi server: ' + err.message);
-  }
-});
+// app.get('/admin/dashboard', async (req, res) => {
+//   try {
+//     const students = await Student.find({});
+//     const paidCount = students.filter(s => s.paymentStatus === 'complete').length;
+//     const unpaidCount = students.filter(s => s.paymentStatus === 'incomplete' || s.paymentStatus === 'pending').length;
+//     res.render('admin-dashboard', { students, paidCount, unpaidCount });
+//   } catch (err) {
+//     console.error('Lỗi khi lấy dashboard:', err.message);
+//     res.status(500).send('Lỗi server: ' + err.message);
+//   }
+// });
 
 app.post('/admin/add-student', async (req, res) => {
   const { email, name, studentId, amount } = req.body;
@@ -330,7 +330,28 @@ app.get('/admin/export-students', async (req, res) => {
     res.status(500).send('Lỗi server: ' + err.message);
   }
 });
-
+app.get('/admin/dashboard', async (req, res) => {
+  try {
+    const students = await Student.find({});
+    const paidCount = students.filter(s => s.paymentStatus === 'complete').length;
+    const unpaidCount = students.filter(s => s.paymentStatus === 'incomplete' || s.paymentStatus === 'pending').length;
+    const count30000 = students.filter(s => s.amount === 30000).length;
+    const count80000 = students.filter(s => s.amount === 80000).length;
+    const totalAmount = students.reduce((sum, s) => sum + (s.paymentStatus === 'complete' ? s.amount : 0), 0);
+    console.log('Data sent to template:', { students: students.length, paidCount, unpaidCount, count30000, count80000, totalAmount });
+    res.render('admin-dashboard', { 
+      students, 
+      paidCount, 
+      unpaidCount, 
+      count30000, 
+      count80000, 
+      totalAmount 
+    });
+  } catch (err) {
+    console.error('Lỗi khi lấy dashboard:', err.message);
+    res.status(500).send('Lỗi server: ' + err.message);
+  }
+});
 app.listen(port, () => {
   console.log(`Server đang chạy tại http://localhost:${port}`);
 });

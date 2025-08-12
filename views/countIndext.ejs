@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Đếm Số Lần Tập</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Poppins', -apple-system, BlinkMacSystemFont, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(-45deg, #6e8efb, #a777e3, #23a6d5, #23d5ab);
+            background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite;
+            color: #fff;
+            overflow: hidden;
+        }
+
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        h1 {
+            font-size: 3.5rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            text-shadow: 0 0 20px rgba(255, 255, 255, 0.5), 0 0 40px rgba(0, 0, 0, 0.3);
+            margin-bottom: 2rem;
+            animation: fadeIn 1.2s ease-in-out;
+        }
+
+        #counter {
+            font-size: 6rem;
+            font-weight: 900;
+            background: linear-gradient(45deg, #ff6b6b, #ffe66d, #00ff87);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            text-shadow: 0 0 15px rgba(255, 255, 255, 0.7), 0 0 30px rgba(0, 255, 135, 0.5);
+            margin: 1.5rem 0;
+            animation: pulseGlow 2s ease-in-out infinite;
+        }
+
+        @keyframes pulseGlow {
+            0% { text-shadow: 0 0 15px rgba(255, 255, 255, 0.7), 0 0 30px rgba(0, 255, 135, 0.5); }
+            50% { text-shadow: 0 0 25px rgba(255, 255, 255, 0.9), 0 0 50px rgba(0, 255, 135, 0.7); }
+            100% { text-shadow: 0 0 15px rgba(255, 255, 255, 0.7), 0 0 30px rgba(0, 255, 135, 0.5); }
+        }
+
+        button {
+            position: relative;
+            padding: 1.3rem 3.5rem;
+            font-size: 1.3rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            background: linear-gradient(45deg, #00ff87, #60efff);
+            border: none;
+            border-radius: 50px;
+            color: #1a1a1a;
+            cursor: pointer;
+            box-shadow: 0 10px 25px rgba(0, 255, 135, 0.4);
+            transition: transform 0.3s ease, box-shadow 0.3s ease, background 0.3s ease;
+            overflow: hidden;
+            margin: 0.5rem;
+        }
+
+        button::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            transition: width 0.6s ease, height 0.6s ease;
+            pointer-events: none;
+        }
+
+        button:hover::before {
+            width: 300px;
+            height: 300px;
+        }
+
+        button:hover {
+            transform: translateY(-6px);
+            box-shadow: 0 15px 35px rgba(0, 255, 135, 0.6);
+            background: linear-gradient(45deg, #00ff87, #00b4d8);
+        }
+
+        button:active {
+            transform: translateY(0);
+            box-shadow: 0 5px 15px rgba(0, 255, 135, 0.3);
+        }
+
+        button:disabled {
+            background: linear-gradient(45deg, #4a4a4a, #6c757d);
+            color: #a0a0a0;
+            cursor: not-allowed;
+            box-shadow: none;
+            transform: none;
+        }
+
+        #resetButton {
+            background: linear-gradient(45deg, #ff6b6b, #ff8e53);
+        }
+
+        #resetButton:hover {
+            background: linear-gradient(45deg, #ff8e53, #ff6b6b);
+        }
+
+        #resetButton::before {
+            background: rgba(255, 255, 255, 0.4);
+        }
+
+        #message {
+            font-size: 2rem;
+            font-weight: 600;
+            color: #ffd700;
+            text-shadow: 0 0 15px rgba(255, 215, 0, 0.8), 0 0 30px rgba(255, 215, 0, 0.5);
+            margin-top: 2.5rem;
+            display: none;
+            animation: glowText 1.5s ease-in-out infinite alternate;
+        }
+
+        @keyframes glowText {
+            from { text-shadow: 0 0 15px rgba(255, 215, 0, 0.8), 0 0 30px rgba(255, 215, 0, 0.5); }
+            to { text-shadow: 0 0 25px rgba(255, 215, 0, 1), 0 0 50px rgba(255, 215, 0, 0.7); }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes scaleIn {
+            from { transform: scale(0.5); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        @media (max-width: 600px) {
+            h1 { font-size: 2.2rem; }
+            #counter { font-size: 4rem; }
+            button { padding: 1rem 2.5rem; font-size: 1.1rem; }
+            #message { font-size: 1.5rem; }
+        }
+
+        @media (max-width: 400px) {
+            h1 { font-size: 1.8rem; }
+            #counter { font-size: 3rem; }
+            button { padding: 0.8rem 2rem; font-size: 1rem; }
+            #message { font-size: 1.2rem; }
+        }
+    </style>
+</head>
+<body>
+    <h1>Đếm Số Lần Tập</h1>
+    <div id="counter" style="animation: scaleIn 0.8s ease-in-out;"><%= count %></div>
+    <button id="countButton" <%= count >= 100 ? 'disabled' : '' %>>Tập!</button>
+    <form action="/reset-count" method="POST">
+        <button type="submit" id="resetButton">Reset</button>
+    </form>
+    <div id="message">Chúc mừng! Bạn đã đạt 100 lần tập! 🎉</div>
+
+    <script src="https://cdn.jsdelivr.net/npm/js-confetti@0.12.0/dist/js-confetti.browser.js"></script>
+    <script>
+        const jsConfetti = new JSConfetti();
+        let count = <%= count %>;
+
+        const countButton = document.getElementById('countButton');
+        const counterDisplay = document.getElementById('counter');
+        const message = document.getElementById('message');
+
+        if (count >= 100) {
+            message.style.display = 'block';
+            triggerFireworks();
+        }
+
+        countButton.addEventListener('click', () => {
+            if (count < 100) {
+                count++;
+                counterDisplay.textContent = count;
+
+                // Send request to update count on server
+                fetch('/update-count', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ count: count }),
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (count >= 100) {
+                        countButton.disabled = true;
+                        message.style.display = 'block';
+                        triggerFireworks();
+                    }
+                });
+            }
+        });
+
+        function triggerFireworks() {
+            jsConfetti.addConfetti({
+                emojis: ['🎉', '🥳', '💪', '🏋️', '🌟'],
+                confettiNumber: 200,
+                confettiRadius: 10,
+                confettiColors: ['#ff0a54', '#ff477e', '#ff85a1', '#ffd670', '#00ff87'],
+            });
+            // Repeat fireworks for a more dramatic effect
+            setTimeout(() => {
+                jsConfetti.addConfetti({
+                    emojis: ['🎉', '🥳', '💪', '🏋️', '🌟'],
+                    confettiNumber: 100,
+                    confettiRadius: 8,
+                    confettiColors: ['#ff0a54', '#ff477e', '#ff85a1', '#ffd670', '#00ff87'],
+                });
+            }, 1000);
+        }
+    </script>
+</body>
+</html>

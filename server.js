@@ -37,7 +37,8 @@ app.set('views', path.join(__dirname, 'views'));
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
-
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 // Endpoint xác minh webhook
 
 app.get('/confirm-webhook', async (req, res) => {
@@ -55,6 +56,30 @@ app.get('/confirm-webhook', async (req, res) => {
 app.get('/', async (req, res) => {
   res.render('question');
 });
+
+
+let count = 0;
+// Route to render the main page
+app.get('/count', (req, res) => {
+    res.render('countIndext', { count: count }); // Render countIndext.ejs with count
+});
+
+// Route to update the count
+app.post('/update-count', (req, res) => {
+    if (req.body.count !== undefined) {
+        count = parseInt(req.body.count); // Update count from request body
+        res.json({ success: true });
+    } else {
+        res.status(400).json({ error: 'Count not provided' });
+    }
+});
+
+// Optional: Route to reset count
+app.post('/reset-count', (req, res) => {
+    count = 0; // Reset count to 0
+    res.redirect('/'); // Redirect to main page
+});
+
 
 // Trang thanh toán
 app.get('/index', async (req, res) => {

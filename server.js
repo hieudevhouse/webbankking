@@ -77,7 +77,7 @@ app.post('/update-count', (req, res) => {
 // Optional: Route to reset count
 app.post('/reset-count', (req, res) => {
     count = 0; // Reset count to 0
-    res.redirect('/'); // Redirect to main page
+    res.redirect('/count'); // Redirect to main page
 });
 
 
